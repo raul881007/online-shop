@@ -2,6 +2,7 @@ package com.online.shop.controller;
 
 import com.online.shop.domain.ErrorResponse;
 import com.online.shop.domain.Price;
+import com.online.shop.exceptions.PriceNotFoundException;
 import com.online.shop.ports.in.PriceServicePort;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -40,17 +41,28 @@ public class ShopController {
     @ApiResponse(responseCode = "400", description = "Invalid request", content = @Content(mediaType = "application/json"))
     private ResponseEntity<Price> getFilteredPrice(@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)  final LocalDateTime date,
                                                             @RequestParam int productId,
-                                                            @RequestParam int brandId){
+                                                            @RequestParam int brandId) throws PriceNotFoundException {
         log.debug("getFilteredPrice(date={},productId={},brandId={})", date, productId, brandId);
 
         return priceServicePort.getFilteredPrices(date,productId,brandId).map(c -> ResponseEntity.ok().body(c))
-                .orElse(ResponseEntity.noContent().build());
+                .orElseThrow(() -> new PriceNotFoundException(String.format("Price not found for date - %s, product - %s and brand - %s ", date.toString(), productId, brandId)));
     }
 
 
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ExceptionHandler(Exception.class)
     public Object handleValidationExceptions(
+            Exception ex) {
+        return ErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .error("There is an error")
+                .message(ex.getMessage())
+                .build();
+    }
+
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    @ExceptionHandler(PriceNotFoundException.class)
+    public Object handlePriceNotFoundExceptions(
             Exception ex) {
         return ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
