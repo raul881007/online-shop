@@ -8,8 +8,8 @@ import lombok.extern.slf4j.Slf4j;
 
 import javax.transaction.Transactional;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @AllArgsConstructor
 @Slf4j
@@ -38,10 +38,13 @@ public class PriceService implements PriceServicePort {
      * @author Raul Herrera
      */
     @Override
-    public List<Price> getFilteredPrices(LocalDateTime applicationDate, int productId, int brandId) {
-        List<Price> prices = new ArrayList<>();
-        priceRepositoryPort.findFilteredPrices(applicationDate,productId,brandId).forEach(prices::add);
-        return prices;
+    public Optional<Price> getFilteredPrices(LocalDateTime applicationDate, int productId, int brandId){
+        log.debug("getFilteredPrices({}, {}, {})", applicationDate, productId, brandId);
+
+        var prices = priceRepositoryPort.findFilteredPrices(applicationDate, productId, brandId);
+
+        return prices.stream().findFirst();
+
     }
 
 
