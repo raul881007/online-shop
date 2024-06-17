@@ -12,7 +12,7 @@ public interface PriceMOJpaRepository extends JpaRepository<PriceMO, Long> {
     @Query (value = "Select p from PriceMO p " +
             "where p.start_date <= :application_date and p.end_date >= :application_date " +
             "and p.productId = :product_id " +
-            "and p.brandId = :brand_id order by p.priority desc")
+            "and p.brandId = :brand_id")
     List<PriceMO> findAllFilteredPrices(@Param("application_date") LocalDateTime applicationDate, @Param("product_id") int productId,@Param("brand_id") int brandId);
 }
 
