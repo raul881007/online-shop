@@ -8,8 +8,9 @@ import lombok.extern.slf4j.Slf4j;
 
 import javax.transaction.Transactional;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 
 @AllArgsConstructor
 @Slf4j
@@ -30,18 +31,21 @@ public class PriceService implements PriceServicePort {
     }
 
     /**
-     * Gets the filtered prices by entry parameters
+     * Gets the filtered price by entry parameter
      * @param applicationDate local price date
      * @param productId Custom product identifier
      * @param brandId Custom brand identifier
-     * @return PricesList filtered in database
+     * @return Optional price with max priority
      * @author Raul Herrera
      */
     @Override
-    public List<Price> getFilteredPrices(LocalDateTime applicationDate, int productId, int brandId) {
-        List<Price> prices = new ArrayList<>();
-        priceRepositoryPort.findFilteredPrices(applicationDate,productId,brandId).forEach(prices::add);
-        return prices;
+    public Optional<Price> getFilteredPrices(LocalDateTime applicationDate, int productId, int brandId){
+        log.debug("getFilteredPrices({}, {}, {})", applicationDate, productId, brandId);
+
+        var prices = priceRepositoryPort.findFilteredPrices(applicationDate, productId, brandId);
+
+        return prices.stream().max(Comparator.comparing(Price::getPriority));
+
     }
 
 

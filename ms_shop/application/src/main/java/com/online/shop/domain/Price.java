@@ -15,6 +15,7 @@ import java.time.LocalDateTime;
 @Builder
 @AllArgsConstructor
 public class Price {
+
     private int brandId;
     private LocalDateTime startDate;
     private LocalDateTime endDate;

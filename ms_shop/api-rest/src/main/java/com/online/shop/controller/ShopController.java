@@ -1,21 +1,26 @@
 package com.online.shop.controller;
 
+import com.online.shop.domain.ErrorResponse;
 import com.online.shop.domain.Price;
+import com.online.shop.exceptions.PriceNotFoundException;
 import com.online.shop.ports.in.PriceServicePort;
-import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import lombok.AllArgsConstructor;
-import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @RestController
 @AllArgsConstructor
@@ -27,15 +32,43 @@ public class ShopController {
     private final PriceServicePort priceServicePort;
 
     /**
-     * Get method that gets all prices
-     * @return ResponseEntity.ok() with a list of price
+     * Get method that gets filtered price
+     * @return ResponseEntity.ok() with of price
      */
     @GetMapping
-    private ResponseEntity<List<Price>> getFilteredPrices(@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)  final LocalDateTime date,
+    @ApiResponse(responseCode = "200", description = "Price found for current input data", content = @Content(mediaType = "application/json", schema = @Schema(type = "object", implementation = Price.class)))
+    @ApiResponse(responseCode = "204", description = "No prices found for the current input parameters", content = @Content(mediaType = "application/json"))
+    @ApiResponse(responseCode = "400", description = "Invalid request", content = @Content(mediaType = "application/json"))
+    private ResponseEntity<Price> getFilteredPrice(@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)  final LocalDateTime date,
                                                             @RequestParam int productId,
-                                                            @RequestParam int brandId){
-        return ResponseEntity.ok(priceServicePort.getFilteredPrices(date,productId,brandId));
+                                                            @RequestParam int brandId) throws PriceNotFoundException {
+        log.debug("getFilteredPrice(date={},productId={},brandId={})", date, productId, brandId);
+
+        return priceServicePort.getFilteredPrices(date,productId,brandId).map(c -> ResponseEntity.ok().body(c))
+                .orElseThrow(() -> new PriceNotFoundException(String.format("Price not found for date - %s, product - %s and brand - %s ", date.toString(), productId, brandId)));
     }
 
+
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ExceptionHandler(Exception.class)
+    public Object handleValidationExceptions(
+            Exception ex) {
+        return ErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .error("There is an error")
+                .message(ex.getMessage())
+                .build();
+    }
+
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    @ExceptionHandler(PriceNotFoundException.class)
+    public Object handlePriceNotFoundExceptions(
+            Exception ex) {
+        return ErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .error("There is an error")
+                .message(ex.getMessage())
+                .build();
+    }
 
 }
